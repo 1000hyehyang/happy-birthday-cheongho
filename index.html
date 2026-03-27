@@ -58,6 +58,9 @@
     <canvas id="fireworksCanvas" class="fireworks-canvas" aria-hidden="true"></canvas>
 
     <div class="floating-controls">
+      <button type="button" id="letterBtn" class="control-fab control-fab--letter" aria-label="편지 열기">
+        <span class="control-fab__emoji" aria-hidden="true">💌</span>
+      </button>
       <button type="button" id="fireworksBtn" class="control-fab control-fab--fireworks" aria-label="폭죽 터뜨리기">
         <span class="control-fab__emoji" aria-hidden="true">🎉</span>
       </button>
@@ -67,8 +70,31 @@
       </button>
     </div>
 
+    <div id="letterOverlay" class="letter-overlay" hidden>
+      <div class="letter-backdrop" id="letterBackdrop"></div>
+      <div
+        class="letter-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="letterHeading"
+        aria-describedby="letterTypeTarget"
+      >
+        <button type="button" class="letter-close" id="letterClose" aria-label="편지 닫기">
+          ×
+        </button>
+        <h2 id="letterHeading" class="letter-heading">To. 청호</h2>
+        <div class="letter-sheet" id="letterTypeTarget">
+          <p class="letter-typewrap"><span id="letterText" class="letter-text"></span><span id="letterCaret" class="letter-caret" aria-hidden="true"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <script src="./letter.js"></script>
     <script>
       (function () {
+        var LETTER_BODY =
+          typeof window.LETTER_BODY === "string" ? window.LETTER_BODY : "";
+
         var clickAudio = new Audio("sound/click.mp3");
         clickAudio.preload = "auto";
         function playClickSound() {
@@ -84,6 +110,120 @@
           a.volume = 0.42;
           a.play().catch(function () {});
         }
+
+        var letterOverlay = document.getElementById("letterOverlay");
+        var letterBackdrop = document.getElementById("letterBackdrop");
+        var letterClose = document.getElementById("letterClose");
+        var letterBtn = document.getElementById("letterBtn");
+        var letterTextEl = document.getElementById("letterText");
+        var letterCaretEl = document.getElementById("letterCaret");
+        var letterTypeTimer = null;
+        var LETTER_SEEN_KEY = "hb-letter-seen-v1";
+
+        function letterAlreadySeen() {
+          try {
+            return localStorage.getItem(LETTER_SEEN_KEY) === "1";
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function markLetterSeen() {
+          try {
+            localStorage.setItem(LETTER_SEEN_KEY, "1");
+          } catch (e) {}
+        }
+
+        function showLetterInstant() {
+          if (letterTypeTimer) {
+            clearTimeout(letterTypeTimer);
+            letterTypeTimer = null;
+          }
+          if (!letterTextEl || !letterCaretEl) return;
+          letterTextEl.textContent = LETTER_BODY;
+          letterCaretEl.style.display = "inline";
+          letterCaretEl.classList.add("letter-caret--off");
+        }
+
+        function closeLetter() {
+          if (!letterOverlay) return;
+          markLetterSeen();
+          letterOverlay.hidden = true;
+          document.body.classList.remove("letter-open");
+          if (letterTypeTimer) {
+            clearTimeout(letterTypeTimer);
+            letterTypeTimer = null;
+          }
+          if (letterTextEl) letterTextEl.textContent = "";
+          if (letterCaretEl) {
+            letterCaretEl.style.display = "";
+            letterCaretEl.classList.remove("letter-caret--off");
+          }
+        }
+
+        function runLetterTypewriter() {
+          if (!letterTextEl || !letterCaretEl) return;
+          letterTextEl.textContent = "";
+          letterCaretEl.style.display = "inline";
+          letterCaretEl.classList.remove("letter-caret--off");
+          var chars = Array.from(LETTER_BODY);
+          var i = 0;
+
+          function step() {
+            letterTypeTimer = null;
+            if (i >= chars.length) {
+              letterCaretEl.classList.add("letter-caret--off");
+              markLetterSeen();
+              return;
+            }
+            var ch = chars[i];
+            letterTextEl.textContent += ch;
+            i++;
+            var delay = ch === "\n" ? 260 : 42;
+            letterTypeTimer = setTimeout(step, delay);
+          }
+
+          step();
+        }
+
+        function openLetter() {
+          if (!letterOverlay) return;
+          letterOverlay.hidden = false;
+          document.body.classList.add("letter-open");
+          if (letterAlreadySeen()) {
+            showLetterInstant();
+          } else {
+            runLetterTypewriter();
+          }
+        }
+
+        if (letterBtn) {
+          letterBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            playClickSound();
+            openLetter();
+          });
+        }
+
+        if (letterClose) {
+          letterClose.addEventListener("click", function () {
+            playClickSound();
+            closeLetter();
+          });
+        }
+
+        if (letterBackdrop) {
+          letterBackdrop.addEventListener("click", function () {
+            playClickSound();
+            closeLetter();
+          });
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && letterOverlay && !letterOverlay.hidden) {
+            closeLetter();
+          }
+        });
 
         var canvas = document.getElementById("fireworksCanvas");
         var fireworksBtn = document.getElementById("fireworksBtn");
@@ -226,26 +366,26 @@
         }
 
         var candle = document.getElementById("candle");
-        if (!candle) return;
-
-        function setState(out) {
-          candle.classList.toggle("is-out", out);
-          candle.setAttribute("aria-pressed", out ? "false" : "true");
-          candle.setAttribute("aria-label", out ? "촛불 다시 켜기" : "촛불 끄기");
-        }
-
-        function toggle() {
-          playClickSound();
-          setState(!candle.classList.contains("is-out"));
-        }
-
-        candle.addEventListener("click", toggle);
-        candle.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            toggle();
+        if (candle) {
+          function setState(out) {
+            candle.classList.toggle("is-out", out);
+            candle.setAttribute("aria-pressed", out ? "false" : "true");
+            candle.setAttribute("aria-label", out ? "촛불 다시 켜기" : "촛불 끄기");
           }
-        });
+
+          function toggle() {
+            playClickSound();
+            setState(!candle.classList.contains("is-out"));
+          }
+
+          candle.addEventListener("click", toggle);
+          candle.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggle();
+            }
+          });
+        }
       })();
     </script>
   </body>

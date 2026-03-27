@@ -724,3 +724,124 @@ body:has(.candle.is-out)::before {
 .bgm-toggle:not(.bgm-toggle--playing) .bgm-toggle__icon--pause {
   display: none;
 }
+
+/* 편지 오버레이 + 타자기 연출 */
+body.letter-open {
+  overflow: hidden;
+}
+
+.letter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.letter-overlay[hidden] {
+  display: none;
+}
+
+.letter-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 16, 24, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.letter-panel {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  max-height: min(78vh, 520px);
+  overflow: auto;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fffdf8 0%, #faf4ec 55%, #f5ebe3 100%);
+  border: 1px solid rgba(180, 140, 110, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 12px 40px rgba(0, 0, 0, 0.25);
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: default;
+}
+
+.letter-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  color: #6a5550;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.letter-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.letter-heading {
+  margin: 0 0 1rem;
+  font-family: "KyoboHandwriting2019", cursive, sans-serif;
+  font-size: 1.35rem;
+  font-weight: normal;
+  color: #5c4540;
+}
+
+.letter-sheet {
+  margin: 0;
+}
+
+.letter-typewrap {
+  margin: 0;
+  font-family: "KyoboHandwriting2019", cursive, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: #4a3d38;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+.letter-text {
+  white-space: pre-wrap;
+}
+
+.letter-caret {
+  display: inline;
+  margin-left: 1px;
+  vertical-align: baseline;
+}
+
+.letter-caret::after {
+  content: "|";
+  color: #c08090;
+  font-weight: 300;
+  animation: letter-caret-blink 0.85s step-end infinite;
+}
+
+.letter-caret--off::after {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes letter-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
