@@ -60,9 +60,27 @@
 
     <canvas id="fireworksCanvas" class="fireworks-canvas" aria-hidden="true"></canvas>
 
+    <div id="wallNotes" class="wall-notes" aria-hidden="true"></div>
+
+    <div id="noteReadOverlay" class="note-read-overlay" hidden>
+      <div class="note-read-backdrop" id="noteReadBackdrop"></div>
+      <div
+        class="note-read-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="noteReadText"
+      >
+        <p id="noteReadText" class="note-read-body"></p>
+      </div>
+    </div>
+    <div id="noteLimitFlash" class="note-limit-flash" hidden aria-hidden="true"></div>
+
     <div class="floating-controls">
       <button type="button" id="letterBtn" class="control-fab control-fab--letter" aria-label="편지 열기">
         <span class="control-fab__emoji" aria-hidden="true">💌</span>
+      </button>
+      <button type="button" id="noteBtn" class="control-fab control-fab--note" aria-pressed="false" aria-label="쪽지 붙이기">
+        <span class="control-fab__emoji" aria-hidden="true">✏️</span>
       </button>
       <button type="button" id="seduceBtn" class="control-fab control-fab--seduce" aria-pressed="false" aria-label="유혹">
         <span class="control-fab__emoji" aria-hidden="true">🌹</span>
@@ -226,8 +244,17 @@
         }
 
         document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape" && letterOverlay && !letterOverlay.hidden) {
+          if (e.key !== "Escape") return;
+          var noteReadOv = document.getElementById("noteReadOverlay");
+          if (noteReadOv && !noteReadOv.hidden) {
+            noteReadOv.hidden = true;
+            document.body.classList.remove("note-read-open");
+            return;
+          }
+          if (letterOverlay && !letterOverlay.hidden) {
             closeLetter();
+          } else if (document.body.classList.contains("note-mode")) {
+            setNoteMode(false);
           }
         });
 
@@ -248,6 +275,305 @@
             updateSeduceButton();
           });
           updateSeduceButton();
+        }
+
+        var NOTE_IMAGES = [
+          "images/쪽지-1.png",
+          "images/쪽지-2.png",
+          "images/쪽지-3.png",
+          "images/쪽지-4.png"
+        ];
+        var NOTE_PHRASES = [
+          "청탱이 사랑해!",
+          "우리 일본 여행도 가야하는데~",
+          "2026년은 롯데가 우승~~!! 하려나? ㅋ",
+          "2026년도 LG가 우승할게~~",
+          "선물은 마음에 들어 청호야?",
+          "사슴같은 눈망울을 가진 우리 청호",
+          "청호 내 생일 때는 뭐 해줄지 긴장하고 있나~",
+          "이런 여자친구는 나밖에 없을거야!!",
+          "내년 생일도 함께 해야해~~",
+          "해피 벌쓰데이 청호!",
+          "잘 져줘서 항상 고마워~~ 지는 게 이기는거래! ㅎㅎ",
+          "그만 널부렁하고 나랑 같이 공부하자~~",
+          "항상 웃기! 행복하기! 건강하기!",
+          "이벤트는 마음에 들었을라나~~",
+          "쪽지의 모든 내용을 알려면 시간이 꽤 걸릴걸~",
+          "청호가 깃허브라는 걸 알면 쪽지 내용을 다 알 수 있겠지만~",
+          "나는 서버 개발자라 이런 거 잘 못 만드는데 AI 최고당!",
+          "청호 올해는 나랑 칼바람만 해~~ 롤 끊기!!"
+        ];
+        var MAX_NOTES = 8;
+        var NOTES_STORAGE_KEY = "hb-wall-notes-v2";
+        var NOTES_STORAGE_KEY_LEGACY = "hb-wall-notes-v1";
+        var wallNotesEl = document.getElementById("wallNotes");
+        var noteBtn = document.getElementById("noteBtn");
+        var noteReadOverlay = document.getElementById("noteReadOverlay");
+        var noteReadBackdrop = document.getElementById("noteReadBackdrop");
+        var noteReadTextEl = document.getElementById("noteReadText");
+        var noteLimitFlash = document.getElementById("noteLimitFlash");
+        var nextNoteIndex = 0;
+        var noteLimitFlashTimer = null;
+
+        /** 이미 쓰인 문구(used)를 제외하고 무작위 선택 — 풀이 비면 전체에서 무작위 */
+        function pickRandomUnusedPhrase(used) {
+          var pool = [];
+          for (var i = 0; i < NOTE_PHRASES.length; i++) {
+            if (!used.has(NOTE_PHRASES[i])) pool.push(NOTE_PHRASES[i]);
+          }
+          if (pool.length === 0) {
+            return NOTE_PHRASES[Math.floor(Math.random() * NOTE_PHRASES.length)];
+          }
+          return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        function getUsedTextsFromWall() {
+          var used = new Set();
+          if (!wallNotesEl) return used;
+          var nodes = wallNotesEl.querySelectorAll(".wall-note");
+          for (var i = 0; i < nodes.length; i++) {
+            var t = nodes[i].dataset.text;
+            if (t) used.add(t);
+          }
+          return used;
+        }
+
+        /** 저장된 목록 안에서 문구 중복·빈 값을 서로 겹치지 않게 고침 */
+        function dedupeNoteTexts(items) {
+          var used = new Set();
+          var changed = false;
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (!it) continue;
+            var t = typeof it.text === "string" ? it.text.trim() : "";
+            if (!t || used.has(t)) {
+              it.text = pickRandomUnusedPhrase(used);
+              changed = true;
+            }
+            used.add(it.text);
+          }
+          return changed;
+        }
+
+        function loadNotesFromStorage() {
+          try {
+            var raw = localStorage.getItem(NOTES_STORAGE_KEY);
+            if (raw) {
+              var parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                if (parsed.length > MAX_NOTES) {
+                  parsed = parsed.slice(0, MAX_NOTES);
+                  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(parsed));
+                }
+                if (dedupeNoteTexts(parsed)) {
+                  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(parsed));
+                }
+                return parsed;
+              }
+            }
+            var oldRaw = localStorage.getItem(NOTES_STORAGE_KEY_LEGACY);
+            if (oldRaw) {
+              var old = JSON.parse(oldRaw);
+              if (Array.isArray(old)) {
+                for (var j = 0; j < old.length; j++) {
+                  if (old[j] && typeof old[j].text !== "string") {
+                    old[j].text = "";
+                  }
+                }
+                if (old.length > MAX_NOTES) {
+                  old = old.slice(0, MAX_NOTES);
+                }
+                dedupeNoteTexts(old);
+                localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(old));
+                localStorage.removeItem(NOTES_STORAGE_KEY_LEGACY);
+                return old;
+              }
+            }
+          } catch (e) {}
+          return [];
+        }
+
+        function saveNotesToStorage(items) {
+          try {
+            localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(items));
+          } catch (e) {}
+        }
+
+        function getWallNoteData() {
+          if (!wallNotesEl) return [];
+          var nodes = wallNotesEl.querySelectorAll(".wall-note");
+          var out = [];
+          for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            var img = el.querySelector("img");
+            if (!img) continue;
+            out.push({
+              src: img.getAttribute("src") || "",
+              x: parseFloat(el.dataset.x) || 0,
+              y: parseFloat(el.dataset.y) || 0,
+              rot: parseFloat(el.dataset.rot) || 0,
+              text: el.dataset.text || ""
+            });
+          }
+          return out;
+        }
+
+        function renderWallNote(item) {
+          if (!wallNotesEl) return;
+          var text =
+            typeof item.text === "string" && item.text
+              ? item.text
+              : pickRandomUnusedPhrase(getUsedTextsFromWall());
+          var wrap = document.createElement("div");
+          wrap.className = "wall-note";
+          wrap.dataset.x = String(item.x);
+          wrap.dataset.y = String(item.y);
+          wrap.dataset.rot = String(item.rot);
+          wrap.dataset.text = text;
+          wrap.setAttribute("role", "button");
+          wrap.setAttribute("tabindex", "0");
+          wrap.setAttribute("aria-label", "쪽지: " + text);
+          wrap.style.left = item.x * 100 + "%";
+          wrap.style.top = item.y * 100 + "%";
+          wrap.style.transform =
+            "translate(-50%, -50%) rotate(" + item.rot + "deg)";
+          var img = document.createElement("img");
+          img.src = item.src;
+          img.alt = "";
+          img.draggable = false;
+          wrap.appendChild(img);
+          wallNotesEl.appendChild(wrap);
+        }
+
+        function restoreWallNotes() {
+          if (!wallNotesEl) return;
+          wallNotesEl.innerHTML = "";
+          var items = loadNotesFromStorage();
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (!it || typeof it.src !== "string" || typeof it.x !== "number" || typeof it.y !== "number") continue;
+            if (typeof it.rot !== "number") it.rot = 0;
+            renderWallNote(it);
+          }
+        }
+
+        function updateNoteModeButton() {
+          if (!noteBtn) return;
+          var on = document.body.classList.contains("note-mode");
+          noteBtn.setAttribute("aria-pressed", on ? "true" : "false");
+          noteBtn.setAttribute("aria-label", on ? "쪽지 붙이기 끄기" : "쪽지 붙이기");
+        }
+
+        function setNoteMode(on) {
+          document.body.classList.toggle("note-mode", on);
+          updateNoteModeButton();
+        }
+
+        function showNoteRead(text) {
+          if (!noteReadOverlay || !noteReadTextEl) return;
+          noteReadTextEl.textContent = text || "";
+          noteReadOverlay.hidden = false;
+          document.body.classList.add("note-read-open");
+        }
+
+        function hideNoteRead() {
+          if (!noteReadOverlay) return;
+          noteReadOverlay.hidden = true;
+          document.body.classList.remove("note-read-open");
+        }
+
+        function flashNoteLimit() {
+          if (!noteLimitFlash) return;
+          if (noteLimitFlashTimer) {
+            clearTimeout(noteLimitFlashTimer);
+            noteLimitFlashTimer = null;
+          }
+          noteLimitFlash.hidden = false;
+          noteLimitFlash.setAttribute("aria-hidden", "false");
+          noteLimitFlash.classList.remove("note-limit-flash--animate");
+          void noteLimitFlash.offsetWidth;
+          noteLimitFlash.classList.add("note-limit-flash--animate");
+          noteLimitFlashTimer = setTimeout(function () {
+            noteLimitFlash.hidden = true;
+            noteLimitFlash.setAttribute("aria-hidden", "true");
+            noteLimitFlash.classList.remove("note-limit-flash--animate");
+            noteLimitFlashTimer = null;
+          }, 980);
+        }
+
+        if (wallNotesEl && noteBtn) {
+          restoreWallNotes();
+          nextNoteIndex = wallNotesEl.querySelectorAll(".wall-note").length;
+
+          noteBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            playClickSound();
+            setNoteMode(!document.body.classList.contains("note-mode"));
+          });
+
+          if (noteReadBackdrop) {
+            noteReadBackdrop.addEventListener("click", function () {
+              playClickSound();
+              hideNoteRead();
+            });
+          }
+
+          wallNotesEl.addEventListener("click", function (e) {
+            if (letterOverlay && !letterOverlay.hidden) return;
+            var note = e.target.closest && e.target.closest(".wall-note");
+            var noteModeOn = document.body.classList.contains("note-mode");
+
+            if (note) {
+              e.stopPropagation();
+              if (noteModeOn) {
+                playClickSound();
+                note.remove();
+                saveNotesToStorage(getWallNoteData());
+              } else {
+                playClickSound();
+                showNoteRead(note.dataset.text || "");
+              }
+              return;
+            }
+
+            if (!noteModeOn) return;
+
+            var count = wallNotesEl.querySelectorAll(".wall-note").length;
+            if (count >= MAX_NOTES) {
+              playClickSound();
+              flashNoteLimit();
+              return;
+            }
+
+            var w = window.innerWidth;
+            var h = window.innerHeight;
+            if (w < 1 || h < 1) return;
+            var x = e.clientX / w;
+            var y = e.clientY / h;
+            var rot = -6 + Math.random() * 12;
+            var src = NOTE_IMAGES[nextNoteIndex % NOTE_IMAGES.length];
+            nextNoteIndex++;
+            var item = {
+              src: src,
+              x: x,
+              y: y,
+              rot: rot,
+              text: pickRandomUnusedPhrase(getUsedTextsFromWall())
+            };
+            renderWallNote(item);
+            saveNotesToStorage(getWallNoteData());
+            playClickSound();
+          });
+
+          wallNotesEl.addEventListener("keydown", function (e) {
+            var note = e.target.closest && e.target.closest(".wall-note");
+            if (!note || (e.key !== "Enter" && e.key !== " ")) return;
+            e.preventDefault();
+            if (document.body.classList.contains("note-mode")) return;
+            if (letterOverlay && !letterOverlay.hidden) return;
+            playClickSound();
+            showNoteRead(note.dataset.text || "");
+          });
         }
 
         var canvas = document.getElementById("fireworksCanvas");

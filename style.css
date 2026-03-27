@@ -680,6 +680,189 @@ body:has(.candle.is-out)::before {
   pointer-events: none;
 }
 
+/* 배경 벽 쪽지 (케이크 z-index 55 아래, 주변 벽에만 붙음) */
+.wall-notes {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+body.note-mode .wall-notes {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* 쪽지 모드 ON: 전체 화면 프레임 (클릭은 아래 벽으로 통과) */
+body.note-mode::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 200, 90, 0.95),
+    inset 0 0 0 8px rgba(255, 240, 200, 0.35),
+    inset 0 0 48px rgba(255, 180, 60, 0.22);
+  animation: note-mode-frame 2s ease-in-out infinite;
+}
+
+@keyframes note-mode-frame {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 4px rgba(255, 200, 90, 0.95),
+      inset 0 0 0 8px rgba(255, 240, 200, 0.35),
+      inset 0 0 48px rgba(255, 180, 60, 0.22);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 5px rgba(255, 220, 130, 1),
+      inset 0 0 0 12px rgba(255, 248, 220, 0.5),
+      inset 0 0 64px rgba(255, 200, 90, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.note-mode::after {
+    animation: none;
+    box-shadow:
+      inset 0 0 0 4px rgba(255, 210, 110, 0.98),
+      inset 0 0 0 8px rgba(255, 240, 200, 0.4),
+      inset 0 0 40px rgba(255, 190, 70, 0.25);
+  }
+}
+
+.wall-note {
+  position: absolute;
+  width: min(92px, 20vw);
+  pointer-events: auto;
+  cursor: pointer;
+  filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.28));
+}
+
+.wall-note img {
+  display: block;
+  width: 100%;
+  height: auto;
+  -webkit-user-drag: none;
+}
+
+body.note-mode .cake {
+  cursor: default;
+}
+
+.control-fab--note {
+  border-color: rgba(200, 220, 255, 0.45);
+}
+
+/* 쪽지 내용 보기 + 최대 개수 초과 시 빨간 프레임 */
+.note-read-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.note-read-overlay[hidden] {
+  display: none;
+}
+
+.note-read-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 14, 22, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.note-read-panel {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: min(320px, 92vw);
+  padding: 1rem 1.15rem 1.1rem;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #fffdf8 0%, #faf4ec 100%);
+  border: 1px solid rgba(180, 140, 110, 0.35);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+
+.note-read-body {
+  margin: 0;
+  font-family: "KyoboHandwriting2019", cursive, sans-serif;
+  font-size: 1.2rem;
+  line-height: 1.55;
+  color: #4a3832;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+.note-limit-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 47;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 4px rgba(220, 40, 40, 0.96),
+    inset 0 0 0 10px rgba(255, 130, 120, 0.42),
+    inset 0 0 0 52px rgba(255, 50, 0, 0.13);
+}
+
+.note-limit-flash[hidden] {
+  display: none;
+}
+
+.note-limit-flash--animate {
+  animation: note-limit-frame 0.92s ease-in-out;
+}
+
+@keyframes note-limit-frame {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  32% {
+    opacity: 0;
+  }
+  48% {
+    opacity: 1;
+  }
+  68% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes note-limit-frame-reduced {
+  0% {
+    opacity: 0;
+  }
+  35%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-limit-flash--animate {
+    animation: note-limit-frame-reduced 0.55s ease-out;
+  }
+}
+
 /* 하단 고정: 폭죽 + BGM */
 .floating-controls {
   position: fixed;
@@ -754,7 +937,8 @@ body:has(.candle.is-out)::before {
 }
 
 /* 편지 오버레이 + 타자기 연출 */
-body.letter-open {
+body.letter-open,
+body.note-read-open {
   overflow: hidden;
 }
 
