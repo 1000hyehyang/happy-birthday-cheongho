@@ -12,6 +12,7 @@
 
   <body>
     <div class="cake">
+      <p class="cake-message">Happy Birthday 청호!</p>
       <div class="plate"></div>
       <div class="layer layer-bottom"></div>
       <div class="layer layer-middle"></div>
@@ -20,10 +21,41 @@
       <div class="drip drip1"></div>
       <div class="drip drip2"></div>
       <div class="drip drip3"></div>
-      <div class="candle">
-        <div class="flame"></div>
+      <div
+        class="candle"
+        id="candle"
+        role="button"
+        tabindex="0"
+        aria-pressed="true"
+        aria-label="촛불 끄기"
+      >
+        <div class="flame" aria-hidden="true"></div>
       </div>
     </div>
+    <script>
+      (function () {
+        var candle = document.getElementById("candle");
+        if (!candle) return;
+
+        function setState(out) {
+          candle.classList.toggle("is-out", out);
+          candle.setAttribute("aria-pressed", out ? "false" : "true");
+          candle.setAttribute("aria-label", out ? "촛불 다시 켜기" : "촛불 끄기");
+        }
+
+        function toggle() {
+          setState(!candle.classList.contains("is-out"));
+        }
+
+        candle.addEventListener("click", toggle);
+        candle.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggle();
+          }
+        });
+      })();
+    </script>
   </body>
 
 </html>
