@@ -5,9 +5,22 @@
     <meta charset="UTF-8">
     <title>Birthday Cake</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://public.codepenassets.com/css/normalize-5.0.0.min.css">
+    <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon/favicon-96x96.png" />
+    <link rel="shortcut icon" href="favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="favicon/site.webmanifest" />
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Happy Birthday 청호!">
+    <meta property="og:description" content="생일 축하 케이크 페이지">
+    <meta property="og:image" content="images/umeus-og.png">
+    <meta property="og:locale" content="ko_KR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Happy Birthday 청호!">
+    <meta name="twitter:description" content="생일 축하 케이크 페이지">
+    <meta name="twitter:image" content="images/umeus-og.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css">
     <link rel="stylesheet" href="./style.css">
-    <script src="https://public.codepenassets.com/js/prefixfree-1.0.7.min.js"></script>
   </head>
 
   <body>
@@ -32,8 +45,35 @@
         <div class="flame" aria-hidden="true"></div>
       </div>
     </div>
+
+    <audio
+      id="bgm"
+      src="sound/happy-birthday.mp3"
+      loop
+      preload="auto"
+      playsinline
+      aria-hidden="true"
+    ></audio>
+
     <script>
       (function () {
+        var bgm = document.getElementById("bgm");
+        if (bgm) {
+          bgm.volume = 0.45;
+          function playBgm() {
+            return bgm.play().catch(function () {});
+          }
+          function resumeOnInteract() {
+            if (bgm.paused) playBgm();
+            document.body.removeEventListener("click", resumeOnInteract);
+            document.body.removeEventListener("touchend", resumeOnInteract);
+          }
+          playBgm().catch(function () {
+            document.body.addEventListener("click", resumeOnInteract);
+            document.body.addEventListener("touchend", resumeOnInteract);
+          });
+        }
+
         var candle = document.getElementById("candle");
         if (!candle) return;
 
