@@ -44,6 +44,9 @@
       >
         <div class="flame" aria-hidden="true"></div>
       </div>
+      <div class="cake-seduce" id="seduceCakeWrap" hidden>
+        <img class="cake-seduce__img" src="images/유혹중.gif" alt="" draggable="false" aria-hidden="true" />
+      </div>
     </div>
 
     <audio
@@ -60,6 +63,9 @@
     <div class="floating-controls">
       <button type="button" id="letterBtn" class="control-fab control-fab--letter" aria-label="편지 열기">
         <span class="control-fab__emoji" aria-hidden="true">💌</span>
+      </button>
+      <button type="button" id="seduceBtn" class="control-fab control-fab--seduce" aria-pressed="false" aria-label="유혹">
+        <span class="control-fab__emoji" aria-hidden="true">🌹</span>
       </button>
       <button type="button" id="fireworksBtn" class="control-fab control-fab--fireworks" aria-label="폭죽 터뜨리기">
         <span class="control-fab__emoji" aria-hidden="true">🎉</span>
@@ -224,6 +230,25 @@
             closeLetter();
           }
         });
+
+        var seduceBtn = document.getElementById("seduceBtn");
+        var seduceCakeWrap = document.getElementById("seduceCakeWrap");
+
+        function updateSeduceButton() {
+          if (!seduceBtn || !seduceCakeWrap) return;
+          var on = !seduceCakeWrap.hidden;
+          seduceBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        }
+
+        if (seduceBtn && seduceCakeWrap) {
+          seduceBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            playClickSound();
+            seduceCakeWrap.toggleAttribute("hidden");
+            updateSeduceButton();
+          });
+          updateSeduceButton();
+        }
 
         var canvas = document.getElementById("fireworksCanvas");
         var fireworksBtn = document.getElementById("fireworksBtn");

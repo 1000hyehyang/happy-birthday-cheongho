@@ -459,6 +459,7 @@ body:has(.candle.is-out)::before {
 
 .cake {
   position: absolute;
+  z-index: 55;
   width: 250px;
   height: 200px;
   top: 50%;
@@ -627,6 +628,27 @@ body:has(.candle.is-out)::before {
   filter: blur(1px);
 }
 
+.cake-seduce[hidden] {
+  display: none !important;
+}
+
+.cake-seduce {
+  position: absolute;
+  z-index: 15;
+  top: 6px;
+  right: 8px;
+  pointer-events: none;
+  line-height: 0;
+}
+
+.cake-seduce__img {
+  display: block;
+  width: 44px;
+  max-width: min(44px, 13vw);
+  height: auto;
+  vertical-align: top;
+}
+
 @keyframes flicker {
   0% {
     transform: skewX(5deg);
@@ -662,11 +684,13 @@ body:has(.candle.is-out)::before {
 .floating-controls {
   position: fixed;
   z-index: 100;
-  right: 1rem;
+  left: 50%;
   bottom: 1rem;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -723,6 +747,10 @@ body:has(.candle.is-out)::before {
 
 .bgm-toggle:not(.bgm-toggle--playing) .bgm-toggle__icon--pause {
   display: none;
+}
+
+.control-fab--seduce {
+  border-color: rgba(255, 150, 170, 0.55);
 }
 
 /* 편지 오버레이 + 타자기 연출 */
