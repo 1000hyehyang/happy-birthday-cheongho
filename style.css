@@ -972,6 +972,8 @@ body.note-read-open {
   max-width: 400px;
   max-height: min(78vh, 520px);
   overflow: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE, 구형 Edge */
   padding: 1.1rem 1.25rem 1.25rem;
   border-radius: 4px;
   background: linear-gradient(180deg, #fffdf8 0%, #faf4ec 55%, #f5ebe3 100%);
@@ -982,6 +984,10 @@ body.note-read-open {
   -webkit-user-select: text;
   user-select: text;
   cursor: default;
+}
+
+.letter-panel::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Chromium Edge */
 }
 
 .letter-close {
