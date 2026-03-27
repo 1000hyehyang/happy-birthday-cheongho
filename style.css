@@ -640,3 +640,78 @@ body:has(.candle.is-out)::before {
     box-shadow: 0 0 10px rgba(255, 165, 0, 0.5), 0 0 20px rgba(255, 165, 0, 0.5), 0 0 60px rgba(255, 165, 0, 0.5), 0 0 80px rgba(255, 165, 0, 0.5);
   }
 }
+
+/* 폭죽 캔버스 (전체 화면, 클릭 통과) */
+.fireworks-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* 하단 고정: 폭죽 + BGM */
+.floating-controls {
+  position: fixed;
+  z-index: 100;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 2px solid rgba(255, 200, 220, 0.55);
+  border-radius: 999px;
+  background: rgba(40, 35, 42, 0.88);
+  color: #ffe8f0;
+  font-family: "Quicksand", system-ui, sans-serif;
+  font-size: 0.82rem;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s ease, transform 0.12s ease, border-color 0.2s ease;
+}
+
+.control-fab:hover {
+  background: rgba(55, 48, 58, 0.95);
+  border-color: rgba(255, 210, 225, 0.75);
+}
+
+.control-fab:active {
+  transform: scale(0.97);
+}
+
+.control-fab:focus {
+  outline: none;
+}
+
+.control-fab:focus-visible {
+  outline: 2px solid #ffb8d4;
+  outline-offset: 3px;
+}
+
+.control-fab__emoji {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.bgm-toggle__icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.bgm-toggle--playing .bgm-toggle__icon--play {
+  display: none;
+}
+
+.bgm-toggle:not(.bgm-toggle--playing) .bgm-toggle__icon--pause {
+  display: none;
+}

@@ -55,23 +55,174 @@
       aria-hidden="true"
     ></audio>
 
+    <canvas id="fireworksCanvas" class="fireworks-canvas" aria-hidden="true"></canvas>
+
+    <div class="floating-controls">
+      <button type="button" id="fireworksBtn" class="control-fab control-fab--fireworks" aria-label="폭죽 터뜨리기">
+        <span class="control-fab__emoji" aria-hidden="true">🎉</span>
+      </button>
+      <button type="button" id="bgmToggle" class="control-fab bgm-toggle" aria-pressed="false" aria-label="배경음악 재생">
+        <span class="bgm-toggle__icon bgm-toggle__icon--play" aria-hidden="true">▶</span>
+        <span class="bgm-toggle__icon bgm-toggle__icon--pause" aria-hidden="true">⏸</span>
+      </button>
+    </div>
+
     <script>
       (function () {
+        var clickAudio = new Audio("sound/click.mp3");
+        clickAudio.preload = "auto";
+        function playClickSound() {
+          clickAudio.volume = 0.4;
+          try {
+            clickAudio.currentTime = 0;
+          } catch (e) {}
+          clickAudio.play().catch(function () {});
+        }
+
+        function playFireworkSound() {
+          var a = new Audio("sound/firework.mp3");
+          a.volume = 0.42;
+          a.play().catch(function () {});
+        }
+
+        var canvas = document.getElementById("fireworksCanvas");
+        var fireworksBtn = document.getElementById("fireworksBtn");
+
+        if (canvas && canvas.getContext) {
+          var ctx = canvas.getContext("2d");
+          var particles = [];
+          var rafId = null;
+
+          function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+          }
+
+          window.addEventListener("resize", resizeCanvas);
+          resizeCanvas();
+
+          function pickColor() {
+            var palette = ["#ff6b9d", "#ffd93d", "#6bcb77", "#4d96ff", "#ff9ff3", "#ffffff", "#ff8f8f", "#c9b1ff"];
+            return palette[Math.floor(Math.random() * palette.length)];
+          }
+
+          function burst(cx, cy) {
+            var count = 96 + Math.floor(Math.random() * 64);
+            for (var i = 0; i < count; i++) {
+              var a = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+              var sp = 2.5 + Math.random() * 5.5;
+              particles.push({
+                x: cx,
+                y: cy,
+                vx: Math.cos(a) * sp,
+                vy: Math.sin(a) * sp,
+                life: 1,
+                decay: 0.004 + Math.random() * 0.01,
+                color: pickColor(),
+                size: 1.5 + Math.random() * 2.5
+              });
+            }
+          }
+
+          function tick() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (var i = particles.length - 1; i >= 0; i--) {
+              var p = particles[i];
+              p.x += p.vx;
+              p.y += p.vy;
+              p.vy += 0.072;
+              p.vx *= 0.991;
+              p.life -= p.decay;
+              if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+              }
+              ctx.globalAlpha = Math.min(1, p.life);
+              ctx.fillStyle = p.color;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            if (particles.length > 0) {
+              rafId = requestAnimationFrame(tick);
+            } else {
+              rafId = null;
+            }
+          }
+
+          function launchFireworks() {
+            playFireworkSound();
+            resizeCanvas();
+            var w = canvas.width;
+            var h = canvas.height;
+            var bursts = 10;
+            for (var b = 0; b < bursts; b++) {
+              (function (delay) {
+                setTimeout(function () {
+                  var x = w * (0.12 + Math.random() * 0.76);
+                  var y = h * (0.08 + Math.random() * 0.38);
+                  burst(x, y);
+                  if (!rafId) rafId = requestAnimationFrame(tick);
+                }, delay);
+              })(b * 260);
+            }
+          }
+
+          if (fireworksBtn) {
+            fireworksBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              playClickSound();
+              launchFireworks();
+            });
+          }
+        }
+
         var bgm = document.getElementById("bgm");
+        var bgmToggle = document.getElementById("bgmToggle");
+
+        function updateBgmButton() {
+          if (!bgmToggle || !bgm) return;
+          var playing = !bgm.paused;
+          bgmToggle.setAttribute("aria-pressed", playing ? "true" : "false");
+          bgmToggle.setAttribute("aria-label", playing ? "배경음악 일시정지" : "배경음악 재생");
+          bgmToggle.classList.toggle("bgm-toggle--playing", playing);
+        }
+
         if (bgm) {
           bgm.volume = 0.45;
+          bgm.addEventListener("play", updateBgmButton);
+          bgm.addEventListener("pause", updateBgmButton);
+
           function playBgm() {
             return bgm.play().catch(function () {});
           }
+
           function resumeOnInteract() {
             if (bgm.paused) playBgm();
             document.body.removeEventListener("click", resumeOnInteract);
             document.body.removeEventListener("touchend", resumeOnInteract);
           }
+
           playBgm().catch(function () {
             document.body.addEventListener("click", resumeOnInteract);
             document.body.addEventListener("touchend", resumeOnInteract);
           });
+
+          if (bgmToggle) {
+            bgmToggle.addEventListener("click", function (e) {
+              e.stopPropagation();
+              playClickSound();
+              if (bgm.paused) {
+                playBgm();
+              } else {
+                bgm.pause();
+              }
+            });
+          }
+
+          updateBgmButton();
         }
 
         var candle = document.getElementById("candle");
@@ -84,6 +235,7 @@
         }
 
         function toggle() {
+          playClickSound();
           setState(!candle.classList.contains("is-out"));
         }
 
